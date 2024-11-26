@@ -189,6 +189,11 @@ import {
 } from "@react-google-maps/api";
 
 const Map = () => {
+  const [address, setAddress] = useState(""); // לשמור את הכתובת
+  const [center, setCenter] = useState<google.maps.LatLngLiteral>({
+    lat: 32.0853,
+    lng: 34.7818,
+  });
   const polygonRef = useRef<google.maps.Polygon | null>(null); // לשמור את הפוליגון הצהוב
   const mapRef = useRef<google.maps.Map | null>(null); // ה-ref של המפה
   const [mode, setMode] = useState<"route" | "area">("route");
@@ -247,6 +252,34 @@ const Map = () => {
 
     directionsService.route(request, (result, status) => {
       if (status === google.maps.DirectionsStatus.OK && result) {
+        // שלוף את כל הנקודות שבין התחלה וסיום
+        const allRoutePoints: google.maps.LatLngLiteral[] = [];
+        const route = result.routes[0];
+
+        // הוסף את נקודת ההתחלה
+        allRoutePoints.push({
+          lat: route.legs[0].start_location.lat(),
+          lng: route.legs[0].start_location.lng(),
+        });
+
+        // עבור על כל ה-legs והוסף את כל הנקודות
+        route.legs.forEach((leg) => {
+          leg.steps.forEach((step) => {
+            // const stepLatLng = step.end_location;
+            // allRoutePoints.push({
+            //   lat: stepLatLng.lat(),
+            //   lng: stepLatLng.lng(),
+            // });
+            allRoutePoints.push({
+              lat: step.end_location.lat(),
+              lng: step.end_location.lng(),
+            });
+          });
+        });
+
+        setRoutePoints(allRoutePoints); // עדכון המערך עם כל הנקודות
+        console.log(allRoutePoints);
+
         setDirections(result);
       } else {
         alert("לא ניתן לחשב מסלול.");
@@ -292,9 +325,49 @@ const Map = () => {
     }
   };
 
+  const handleAddressSubmit = () => {
+    const geocoder = new google.maps.Geocoder();
+  
+    geocoder.geocode({ address }, (results, status) => {
+      if (status === google.maps.GeocoderStatus.OK && results!.length > 0) {
+        const location = results![0].geometry.location;
+  
+        // עדכון מרכז המפה
+        setCenter({
+          lat: location.lat(),
+          lng: location.lng(),
+        });
+  
+        if (mapRef.current) {
+          mapRef.current.setZoom(15); // זום למיקום
+        }
+      } else {
+        alert("כתובת לא נמצאה, נסה שוב.");
+      }
+    });
+  };
+  
+
   return (
     <div className="flex flex-col">
+         <div className="flex justify-center items-center mb-4 mt-4 space-x-2">
+          <input
+            type="text"
+            placeholder="הזן כתובת לחיפוש"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="px-4 py-2 border rounded"
+          />
+          <button
+            onClick={handleAddressSubmit}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            חפש כתובת
+          </button>
+        </div>
       <div className="flex justify-center mb-4 space-x-2">
+       
+
         <button
           onClick={() => setMode("route")}
           className={`px-4 py-2 ${
@@ -337,7 +410,7 @@ const Map = () => {
       >
         <GoogleMap
           mapContainerStyle={{ width: "100%", height: "500px" }}
-          center={{ lat: 32.0853, lng: 34.7818 }}
+          center={center}
           zoom={13}
           onClick={handleMapClick}
           onLoad={(map) => {
@@ -398,3 +471,74 @@ const Map = () => {
 };
 
 export default Map;
+
+// "use client";
+// import React, { useState, useRef } from "react";
+// import {
+//   GoogleMap,
+//   LoadScript,
+// } from "@react-google-maps/api";
+
+// const Map = () => {
+//   const [address, setAddress] = useState("");
+//   const [center, setCenter] = useState<google.maps.LatLngLiteral | null>(null); // מרכז המפה
+//   const mapRef = useRef<google.maps.Map | null>(null); // ה-ref של המפה
+
+//   const handleAddressSubmit = async () => {
+//     if (!address.trim()) {
+//       alert("נא להזין כתובת.");
+//       return;
+//     }
+
+//     if (window.google) {
+//       const geocoder = new window.google.maps.Geocoder();
+
+//       geocoder.geocode({ address }, (results, status) => {
+//         if (status === "OK" && results && results.length > 0) {
+//           const location = results[0].geometry.location;
+//           setCenter({ lat: location.lat(), lng: location.lng() });
+//         } else {
+//           alert("לא ניתן למצוא את הכתובת.");
+//         }
+//       });
+//     } else {
+//       alert("Google Maps API לא נטען.");
+//     }
+//   };
+
+//   return (
+//     <div className="flex flex-col items-center">
+//       <div className="mb-4">
+//         <input
+//           type="text"
+//           placeholder="הזן כתובת התחלה"
+//           value={address}
+//           onChange={(e) => setAddress(e.target.value)}
+//           className="border rounded px-4 py-2 mr-2"
+//         />
+//         <button
+//           onClick={handleAddressSubmit}
+//           className="px-4 py-2 bg-blue-500 text-white rounded"
+//         >
+//           קבע מיקום
+//         </button>
+//       </div>
+
+//       <LoadScript googleMapsApiKey={`${process.env.NEXT_PUBLIC_GOOGLMAPS_API_KEY}`}>
+//         {center && (
+//           <GoogleMap
+//             mapContainerStyle={{ width: "100%", height: "500px" }}
+//             center={center}
+//             zoom={13}
+//             onLoad={(map) => {
+//               mapRef.current = map; // שמור את המפה ב-ref ברגע שהיא נטענת
+//             }}
+//           />
+//         )}
+//       </LoadScript>
+//       {!center && <p>אנא הזן כתובת כדי להציג את המפה.</p>}
+//     </div>
+//   );
+// };
+
+// export default Map;
