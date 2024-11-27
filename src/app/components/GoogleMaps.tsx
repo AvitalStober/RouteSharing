@@ -469,6 +469,7 @@
 // };
 
 // export default Map;
+
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import {
@@ -502,54 +503,54 @@ const Map = () => {
     language: "he",
   });
 
-//   useEffect(() => {
-//     if (isLoaded && autocompleteRef.current) {
-//       const autocomplete = new google.maps.places.Autocomplete(
-//         autocompleteRef.current
-//       );
+  //   useEffect(() => {
+  //     if (isLoaded && autocompleteRef.current) {
+  //       const autocomplete = new google.maps.places.Autocomplete(
+  //         autocompleteRef.current
+  //       );
 
-//       autocomplete.addListener("place_changed", () => {
-//         const place = autocomplete.getPlace();
-//         if (place.geometry && place.geometry.location) {
-//           const location = place.geometry.location;
-//           setCenter({
-//             lat: location.lat(),
-//             lng: location.lng(),
-//           });
+  //       autocomplete.addListener("place_changed", () => {
+  //         const place = autocomplete.getPlace();
+  //         if (place.geometry && place.geometry.location) {
+  //           const location = place.geometry.location;
+  //           setCenter({
+  //             lat: location.lat(),
+  //             lng: location.lng(),
+  //           });
 
-//           setRoutePoints((prevPoints) => [
-//             ...prevPoints,
-//             {
-//               lat: location.lat(),
-//               lng: location.lng(),
-//             },
-//           ]);
+  //           setRoutePoints((prevPoints) => [
+  //             ...prevPoints,
+  //             {
+  //               lat: location.lat(),
+  //               lng: location.lng(),
+  //             },
+  //           ]);
 
-//           if (mapRef.current) {
-//             mapRef.current.setZoom(15); // זום למיקום
-//           }
-//         }
-//       });
-//     }
-//   }, [isLoaded]);
-useEffect(() => {
+  //           if (mapRef.current) {
+  //             mapRef.current.setZoom(15); // זום למיקום
+  //           }
+  //         }
+  //       });
+  //     }
+  //   }, [isLoaded]);
+  useEffect(() => {
     if (isLoaded && autocompleteRef.current) {
       const autocomplete = new google.maps.places.Autocomplete(
         autocompleteRef.current
       );
-  
+
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
-  
+
         if (place.geometry && place.geometry.location) {
           const location = place.geometry.location;
-  
+
           // עדכון מרכז המפה
           setCenter({
             lat: location.lat(),
             lng: location.lng(),
           });
-  
+
           // הוסף את הנקודה הנבחרת למסלול
           setRoutePoints((prevPoints) => [
             ...prevPoints,
@@ -558,20 +559,19 @@ useEffect(() => {
               lng: location.lng(),
             },
           ]);
-  
+
           // זום למיקום הנבחר
           if (mapRef.current) {
             mapRef.current.setZoom(15);
           }
-  
+
           // עדכון הכתובת בתיבת החיפוש
-          const formattedAddress = place.formatted_address || ''; // אם לא נמצא, השתמש בברירת מחדל ריקה
+          const formattedAddress = place.formatted_address || ""; // אם לא נמצא, השתמש בברירת מחדל ריקה
           setAddress(formattedAddress);
         }
       });
     }
   }, [isLoaded]);
-  
 
   const handleMapClick = (event: google.maps.MapMouseEvent) => {
     if (event.latLng) {
@@ -579,26 +579,38 @@ useEffect(() => {
         lat: event.latLng.lat(),
         lng: event.latLng.lng(),
       };
-
+  
+      console.log("newPoint ", newPoint);
+  
       if (mode === "route") {
         setRoutePoints((prevPoints) => [...prevPoints, newPoint]);
       } else {
-        setAreaPoints((prevPoints) => [...prevPoints, newPoint]);
-        if (areaPoints.length > 2) {
-          const polygon = new google.maps.Polygon({
-            paths: [...areaPoints, newPoint],
-            fillColor: "yellow",
-            fillOpacity: 0.4,
-            strokeColor: "yellow",
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-          });
-          polygon.setMap(mapRef.current);
-          polygonRef.current = polygon;
-        }
+        setAreaPoints((prevPoints) => {
+          const updatedPoints = [...prevPoints, newPoint];
+          console.log("Updated AreaPoints: ", updatedPoints);
+  
+          // בניית הפוליגון רק אם יש יותר מ-2 נקודות
+          if (updatedPoints.length > 2) {
+            const polygon = new google.maps.Polygon({
+              paths: updatedPoints,
+              fillColor: "yellow",
+              fillOpacity: 0.1,
+              strokeColor: "yellow",
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+            });
+            polygon.setMap(mapRef.current);
+            console.log("Polygon: ", polygon);
+  
+            polygonRef.current = polygon;
+          }
+  
+          return updatedPoints;
+        });
       }
     }
   };
+  
 
   const calculateRoute = () => {
     if (routePoints.length < 2) {
@@ -651,8 +663,10 @@ useEffect(() => {
   };
 
   const displayPoints = () => {
+    console.log(polygonRef);
     if (polygonRef.current && routePoints.length > 0) {
       let allPointsInside = true;
+      console.log("in points show");
 
       for (const point of routePoints) {
         const latLng = new google.maps.LatLng(point.lat, point.lng);
@@ -822,74 +836,3 @@ useEffect(() => {
 };
 
 export default Map;
-
-// "use client";
-// import React, { useState, useRef } from "react";
-// import {
-//   GoogleMap,
-//   LoadScript,
-// } from "@react-google-maps/api";
-
-// const Map = () => {
-//   const [address, setAddress] = useState("");
-//   const [center, setCenter] = useState<google.maps.LatLngLiteral | null>(null); // מרכז המפה
-//   const mapRef = useRef<google.maps.Map | null>(null); // ה-ref של המפה
-
-//   const handleAddressSubmit = async () => {
-//     if (!address.trim()) {
-//       alert("נא להזין כתובת.");
-//       return;
-//     }
-
-//     if (window.google) {
-//       const geocoder = new window.google.maps.Geocoder();
-
-//       geocoder.geocode({ address }, (results, status) => {
-//         if (status === "OK" && results && results.length > 0) {
-//           const location = results[0].geometry.location;
-//           setCenter({ lat: location.lat(), lng: location.lng() });
-//         } else {
-//           alert("לא ניתן למצוא את הכתובת.");
-//         }
-//       });
-//     } else {
-//       alert("Google Maps API לא נטען.");
-//     }
-//   };
-
-//   return (
-//     <div className="flex flex-col items-center">
-//       <div className="mb-4">
-//         <input
-//           type="text"
-//           placeholder="הזן כתובת התחלה"
-//           value={address}
-//           onChange={(e) => setAddress(e.target.value)}
-//           className="border rounded px-4 py-2 mr-2"
-//         />
-//         <button
-//           onClick={handleAddressSubmit}
-//           className="px-4 py-2 bg-blue-500 text-white rounded"
-//         >
-//           קבע מיקום
-//         </button>
-//       </div>
-
-//       <LoadScript googleMapsApiKey={`${process.env.NEXT_PUBLIC_GOOGLMAPS_API_KEY}`}>
-//         {center && (
-//           <GoogleMap
-//             mapContainerStyle={{ width: "100%", height: "500px" }}
-//             center={center}
-//             zoom={13}
-//             onLoad={(map) => {
-//               mapRef.current = map; // שמור את המפה ב-ref ברגע שהיא נטענת
-//             }}
-//           />
-//         )}
-//       </LoadScript>
-//       {!center && <p>אנא הזן כתובת כדי להציג את המפה.</p>}
-//     </div>
-//   );
-// };
-
-// export default Map;
