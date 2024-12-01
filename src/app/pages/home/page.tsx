@@ -1,4 +1,4 @@
-import Map from '@/app/components/GoogleMaps';
+import Map from '@/app/components/Map';
 
 const HomePage = () => {
   return (
